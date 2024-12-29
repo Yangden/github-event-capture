@@ -1,6 +1,7 @@
 package com.example.github_event_capture.service;
 
 import com.example.github_event_capture.entity.Event;
+import com.example.github_event_capture.entity.dto.IssueEventDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -35,9 +36,9 @@ public final class KafkaDatabaseConsumer {
             /* store necessary info in dto entity */
             Event eventObj = mapper.readValue(record.value(), EventClass);
             LOGGER.info("deserialized event structure: {}", mapper.writeValueAsString(eventObj));
-            LOGGER.info("Runtime type of eventObj: {}", eventObj.getClass().getName());
+            //LOGGER.info("Runtime type of eventObj: {}", eventObj.getClass().getName());
             /* write to the database */
-            eventRepository.save(eventObj);
+            eventRepository.save((IssueEventDTO)eventObj);
         } catch (JsonProcessingException e) {
             LOGGER.error("deserialization fail: " + e.getMessage());
             e.printStackTrace();
