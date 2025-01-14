@@ -5,4 +5,6 @@ import com.example.github_event_capture.entity.Event;
 
 public interface EventRepository extends MongoRepository<Event, String> {
     // custom queries
+
 }
+
