@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface FilterRepository extends MongoRepository<Filters, String> {
     /* fetch a single document using user id)*/
     @Query("{ 'uid' : ?0 }")
-    Optional<Filters> findByUserId(int uid);
+    Optional<Filters> findByUserId(long uid);
+    /* delete filters by user id */
+    void deleteByUid(long id);
 
 }

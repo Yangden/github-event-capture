@@ -9,6 +9,7 @@ spring:
     consumer:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest # always start offset at the earliest message(integrity)
 
 
 

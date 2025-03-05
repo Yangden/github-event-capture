@@ -27,4 +27,9 @@ services:
     container_name: mongodb
     ports:
       - "27017:27017"
-    
+
+  PostgresSQL:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - "5432:5432"

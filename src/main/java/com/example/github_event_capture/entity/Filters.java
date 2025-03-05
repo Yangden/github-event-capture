@@ -9,7 +9,7 @@ import java.util.HashSet;
 @Document(collection = "Filters")
 public class Filters {
     @Field("uid")
-    private int uid;
+    private long uid;
 
     /* filters */
     @Field("EventTypes")
@@ -21,6 +21,9 @@ public class Filters {
     }
     public void setEventTypes(HashSet<String> eventTypes) {
         this.EventTypes = eventTypes;
+    }
+    public void setUid(long uid) {
+        this.uid = uid;
     }
 
 }
