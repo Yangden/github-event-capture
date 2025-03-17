@@ -15,7 +15,6 @@ import com.example.github_event_capture.repository.EventRepository;
 @Service
 public final class KafkaDatabaseConsumer {
     private final ObjectMapper mapper = new ObjectMapper(); // map to dto object
-    private final EventAccess eventAccess = new EventAccess(); // the utility to accessing event object
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaDatabaseConsumer.class);
 
     private final EventRepository eventRepository;
@@ -30,7 +29,7 @@ public final class KafkaDatabaseConsumer {
         LOGGER.info("Event Key: " + record.key());
         LOGGER.info("Event content: " + record.value());
         /* use key to get the type of event */
-        Class <? extends Event> EventClass = eventAccess.getEventObj(record.key());
+        Class <? extends Event> EventClass = EventAccess.getEventObj(record.key());
         /* map to corresponding DTO */
         try {
             /* store necessary info in dto entity */

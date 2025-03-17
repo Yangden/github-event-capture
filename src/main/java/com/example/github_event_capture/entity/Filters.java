@@ -19,6 +19,11 @@ public class Filters {
     public HashSet<String> getEventTypes() {
         return EventTypes;
     }
+
+    public long getUid() {
+        return uid;
+    }
+
     public void setEventTypes(HashSet<String> eventTypes) {
         this.EventTypes = eventTypes;
     }

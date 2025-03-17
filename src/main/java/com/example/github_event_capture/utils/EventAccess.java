@@ -12,7 +12,7 @@ public class EventAccess {
         EventMap.put("issues", IssueEventDTO.class);
     }
 
-    public Class<? extends Event> getEventObj (String Key) {
+    public static Class<? extends Event> getEventObj (String Key) {
         return EventMap.get(Key);
     }
 

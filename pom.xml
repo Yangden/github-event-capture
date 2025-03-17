@@ -98,6 +98,16 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>ssooidc</artifactId>
 		</dependency>
+		<!-- amazon sqs sdk -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>sqs</artifactId>
+	   </dependency>
+		<!-- amazon ses -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>ses</artifactId>
+		</dependency>
 		<!-- dependencies for spring security-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -7,4 +7,5 @@ import java.util.Optional;
 public interface UserRepository extends CrudRepository<User, Long> {
     // fetch a record by email
     User findByEmail(String email);
+    User findById(long id);
 }
