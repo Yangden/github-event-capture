@@ -2,7 +2,7 @@ package com.example.github_event_capture.entity;
 
 import org.springframework.data.annotation.Id;
 
-public abstract class Event {
+public class Event {
     @Id
     private String id;
 

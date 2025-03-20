@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -26,9 +28,13 @@ public class EventNotificationImpl implements EventNotification {
     }
 
     @Override
+    @Scheduled(fixedDelay = 5000)
+    @Async
     public void sendNotifications() {
         /* get messages from the queue */
         List<String> messages = queueService.receiveMessage();
+        LOGGER.info("messages from sqs received");
+
         /* for each message: map to objects to extract certain fields */
         try {
             for (String message : messages) {
@@ -38,6 +44,7 @@ public class EventNotificationImpl implements EventNotification {
                 emailSenderService.SendEmail(senderEmail, messageDTO.getEmail(),
                                             "Event Notification:" + " " + messageDTO.getEventType(),
                         emailBody);
+                LOGGER.info("email succesfully sent");
             }
         } catch (JsonProcessingException e) {
             LOGGER.error(e.getMessage());

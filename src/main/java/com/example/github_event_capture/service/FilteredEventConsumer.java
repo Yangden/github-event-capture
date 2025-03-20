@@ -33,6 +33,8 @@ public class FilteredEventConsumer {
 
     @KafkaListener(topics = "github-event-topic", groupId = "filter-consumer")
     public void ApplyFilters(ConsumerRecord<String, String> record) {
+        LOGGER.info("The event filter consumer receives the event");
+
         /* get the content of the consumed event */
         String eventType = record.key();
         String eventContent = record.value();
@@ -41,7 +43,7 @@ public class FilteredEventConsumer {
         Iterable<Filters> filtersRecords = filterRepository.findAll();
         /* apply filters of each record */
         for (Filters filters : filtersRecords) {
-            if (filters.getEventTypes().contains(eventType)) { // the event passed the filter
+            if (!filters.getEventTypes().contains(eventType)) { // consumed event does not pass the filter
                 continue;
             }
             /* fetch user information to get the email */
@@ -55,6 +57,7 @@ public class FilteredEventConsumer {
             try {
                 String message = mapper.writeValueAsString(queueMessageDTO); // transform the DTO object to string
                 queueServiceImpl.sendMessage(message); // send the message to the queue
+                LOGGER.info("send message to queue");
             } catch (JsonProcessingException e) {
                 LOGGER.error(e.getMessage());
             }

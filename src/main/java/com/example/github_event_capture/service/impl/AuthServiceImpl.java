@@ -22,6 +22,7 @@ public class AuthServiceImpl {
         this.userRepository = userRepository;
     }
 
+
     public Result userRegister(UserDTO userInfo) {
         /* corner case: dulplicate registered email */
         if (userRepository.findByEmail(userInfo.getEmail()) != null) {
