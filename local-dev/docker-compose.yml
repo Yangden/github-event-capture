@@ -21,10 +21,10 @@ services:
       - "9092:9092"
     depends_on:
       - zookeeper
-
+  
   mongodb:
     image: mongo:latest
-    container_name: mongodb
+    container_name: mongodb_container
     ports:
       - "27017:27017"
 
@@ -32,4 +32,42 @@ services:
     image: postgres:latest
     container_name: postgres
     ports:
-      - "5432:5432"
+      - "5432:5432"    
+    environment:
+      - POSTGRES_PASSWORD=Dy20010429#
+      - POSTGRES_USER=ADMIN
+        
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - '9090:9090'
+    volumes:
+      - D:\computerscience\eventCapture\codes\github-event-capture\src\main\resources\prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./src/monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/2048-dashboard.json
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data:
+  grafana_data:      
