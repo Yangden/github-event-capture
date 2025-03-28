@@ -37,7 +37,7 @@ public final class KafkaDatabaseConsumer {
             LOGGER.info("deserialized event structure: {}", mapper.writeValueAsString(eventObj));
             //LOGGER.info("Runtime type of eventObj: {}", eventObj.getClass().getName());
             /* write to the database */
-            eventRepository.save((IssueEventDTO)eventObj);
+            eventRepository.save(eventObj);
         } catch (JsonProcessingException e) {
             LOGGER.error("deserialization fail: " + e.getMessage());
             e.printStackTrace();
