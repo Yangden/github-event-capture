@@ -10,24 +10,31 @@ import com.example.github_event_capture.entity.Filters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.github_event_capture.repository.UserRepository;
+import com.example.github_event_capture.repository.EventTypeMapRepository;
 import com.example.github_event_capture.service.impl.QueueServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.github_event_capture.entity.dto.QueueMessageDTO;
+import com.example.github_event_capture.entity.EventTypeMap;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class FilteredEventConsumer {
     private final FilterRepository filterRepository;
     private final UserRepository userRepository;
+    private final EventTypeMapRepository eventTypeMapRepository;
     private final QueueServiceImpl queueService;
     private final ObjectMapper mapper = new ObjectMapper();
     private final QueueServiceImpl queueServiceImpl;
 
     public FilteredEventConsumer(FilterRepository filterRepository, UserRepository userRepository,
-                                 QueueServiceImpl queueService, QueueServiceImpl queueServiceImpl) {
+                                 QueueServiceImpl queueService, QueueServiceImpl queueServiceImpl,
+                                 EventTypeMapRepository eventTypeMapRepository) {
         this.filterRepository = filterRepository;
         this.userRepository = userRepository;
         this.queueService = queueService;
         this.queueServiceImpl = queueServiceImpl;
+        this.eventTypeMapRepository = eventTypeMapRepository;
     }
     private static final Logger LOGGER = LoggerFactory.getLogger(FilteredEventConsumer.class);
 
@@ -39,18 +46,19 @@ public class FilteredEventConsumer {
         String eventType = record.key();
         String eventContent = record.value();
 
-        /* Fetch all records of filters */
-        Iterable<Filters> filtersRecords = filterRepository.findAll();
-        /* apply filters of each record */
-        for (Filters filters : filtersRecords) {
-            if (!filters.getEventTypes().contains(eventType)) { // consumed event does not pass the filter
-                continue;
-            }
-            /* fetch user information to get the email */
-            User user = userRepository.findById(filters.getUid());
+        /* get the list of user ids */
+        Optional<EventTypeMap> mapContent = eventTypeMapRepository.findByEventType(eventType);
+        EventTypeMap map = mapContent.get();
+        List<Long> uids = map.getUids();
+
+        /* retrieve user emails */
+        List<String> emails = userRepository.fetchEmailsbyUids(uids);
+
+        /* send messages to amazon sqs */
+        for (String email : emails) {
             /* construct the message sent to the queue*/
             QueueMessageDTO queueMessageDTO = new QueueMessageDTO();
-            queueMessageDTO.setEmail(user.getEmail());
+            queueMessageDTO.setEmail(email);
             queueMessageDTO.setEventType(eventType);
             queueMessageDTO.setEvent(eventContent);
 
