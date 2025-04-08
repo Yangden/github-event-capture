@@ -3,22 +3,27 @@ package com.example.github_event_capture.service.impl;
 import com.example.github_event_capture.entity.dto.FiltersDTO;
 import com.example.github_event_capture.utils.Result;
 import com.example.github_event_capture.entity.Filters;
+import com.example.github_event_capture.entity.EventTypeMap;
 import com.example.github_event_capture.repository.FilterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.github_event_capture.utils.HttpResponseMsg;
 import org.springframework.stereotype.Service;
 import com.example.github_event_capture.security.SecurityContextService;
+import com.example.github_event_capture.service.MongoTemplateService;
 
 
 
 @Service
 public class EventFiltersServiceImpl {
     private final FilterRepository filterRepository;
+    private final MongoTemplateService mongoTemplateService;
     private final Logger LOGGER = LoggerFactory.getLogger(EventFiltersServiceImpl.class);
 
-    public EventFiltersServiceImpl(FilterRepository filterRepository) {
+    public EventFiltersServiceImpl(FilterRepository filterRepository,
+                                   MongoTemplateService mongoTemplateService) {
         this.filterRepository = filterRepository;
+        this.mongoTemplateService = mongoTemplateService;
     }
 
     public Result createFilters(FiltersDTO filtersDTO) {
@@ -30,8 +35,16 @@ public class EventFiltersServiceImpl {
             filters.setUid(uid);
             LOGGER.info("event type: {} ", filtersDTO.getEventTypes());
             filters.setEventTypes(filtersDTO.getEventTypes());
-            /* write to mongodb */
+            /* write to the filter collection */
             filterRepository.save(filters);
+            /* write to the eventTypeSubscribers */
+            LOGGER.info("start bulk writes to the inverted index");
+            String keyField = "eventType";
+            String valField = "uids";
+            mongoTemplateService.setDomainClass(EventTypeMap.class);
+            mongoTemplateService.setBulkOps();
+            mongoTemplateService.bulkWrite(filtersDTO.getEventTypes(), uid, keyField, valField);
+
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
             return Result.fail("filters creation failed");
