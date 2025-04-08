@@ -36,6 +36,8 @@ services:
     environment:
       - POSTGRES_PASSWORD=Dy20010429#
       - POSTGRES_USER=ADMIN
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
         
   prometheus:
     image: prom/prometheus:latest
@@ -69,5 +71,7 @@ services:
       - prometheus
 
 volumes:
+  postgres_data:
+  mongodb_data:
   prometheus_data:
   grafana_data:      
