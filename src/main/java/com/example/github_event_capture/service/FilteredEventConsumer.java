@@ -52,7 +52,7 @@ public class FilteredEventConsumer {
         List<Long> uids = map.getUids();
 
         /* retrieve user emails */
-        List<String> emails = userRepository.fetchEmailsbyUids(uids);
+        List<String> emails = userRepository.findEmailsByUids(uids);
 
         /* send messages to amazon sqs */
         for (String email : emails) {
