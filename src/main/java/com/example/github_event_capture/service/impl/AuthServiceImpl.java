@@ -10,6 +10,7 @@ import com.example.github_event_capture.entity.User;
 import com.example.github_event_capture.utils.Result;
 import com.example.github_event_capture.utils.HttpResponseMsg;
 import com.example.github_event_capture.utils.Jwtutil;
+import com.example.github_event_capture.service.impl.MonitorServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,14 +18,17 @@ import org.slf4j.LoggerFactory;
 public class AuthServiceImpl {
     private final UserRepository userRepository;
     private final Logger LOGGER = LoggerFactory.getLogger(AuthServiceImpl.class);
+    private final MonitorServiceImpl monitorService;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordUtil passwordEncoder) {
+    public AuthServiceImpl(UserRepository userRepository, MonitorServiceImpl monitorService)
+    {
         this.userRepository = userRepository;
+        this.monitorService = monitorService;
     }
 
 
     public Result userRegister(UserDTO userInfo) {
-        /* corner case: dulplicate registered email */
+        /* corner case: duplicate registered email */
         if (userRepository.findByEmail(userInfo.getEmail()) != null) {
             return Result.fail(HttpResponseMsg.DUPLICATE_EMAIL);
         }

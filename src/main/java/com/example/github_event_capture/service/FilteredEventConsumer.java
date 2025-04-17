@@ -15,6 +15,7 @@ import com.example.github_event_capture.service.impl.QueueServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.github_event_capture.entity.dto.QueueMessageDTO;
 import com.example.github_event_capture.entity.EventTypeMap;
+import com.example.github_event_capture.service.impl.MonitorServiceImpl;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,15 +27,17 @@ public class FilteredEventConsumer {
     private final QueueServiceImpl queueService;
     private final ObjectMapper mapper = new ObjectMapper();
     private final QueueServiceImpl queueServiceImpl;
+    private final MonitorServiceImpl monitorService;
 
     public FilteredEventConsumer(FilterRepository filterRepository, UserRepository userRepository,
                                  QueueServiceImpl queueService, QueueServiceImpl queueServiceImpl,
-                                 EventTypeMapRepository eventTypeMapRepository) {
+                                 EventTypeMapRepository eventTypeMapRepository, MonitorServiceImpl monitorService) {
         this.filterRepository = filterRepository;
         this.userRepository = userRepository;
         this.queueService = queueService;
         this.queueServiceImpl = queueServiceImpl;
         this.eventTypeMapRepository = eventTypeMapRepository;
+        this.monitorService = monitorService;
     }
     private static final Logger LOGGER = LoggerFactory.getLogger(FilteredEventConsumer.class);
 
@@ -48,11 +51,14 @@ public class FilteredEventConsumer {
 
         /* get the list of user ids */
         Optional<EventTypeMap> mapContent = eventTypeMapRepository.findByEventType(eventType);
+        monitorService.recordMongoDBRead(1);
+        /* retreive uids to query emails*/
         EventTypeMap map = mapContent.get();
         List<Long> uids = map.getUids();
 
         /* retrieve user emails */
         List<String> emails = userRepository.findEmailsByUids(uids);
+        monitorService.recordPostgresRead(1);
 
         /* send messages to amazon sqs */
         for (String email : emails) {

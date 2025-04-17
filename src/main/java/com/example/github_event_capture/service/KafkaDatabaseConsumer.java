@@ -11,15 +11,18 @@ import com.example.github_event_capture.utils.EventAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.github_event_capture.repository.EventRepository;
+import com.example.github_event_capture.service.impl.MonitorServiceImpl;
 
 @Service
 public final class KafkaDatabaseConsumer {
     private final ObjectMapper mapper = new ObjectMapper(); // map to dto object
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaDatabaseConsumer.class);
+    private MonitorServiceImpl monitorService;
 
     private final EventRepository eventRepository;
-    public KafkaDatabaseConsumer(EventRepository eventRepository) {
+    public KafkaDatabaseConsumer(EventRepository eventRepository, MonitorServiceImpl monitorService) {
         this.eventRepository = eventRepository;
+        this.monitorService = monitorService;
     }
 
     /* Fetch events from kafka and push them to the database*/

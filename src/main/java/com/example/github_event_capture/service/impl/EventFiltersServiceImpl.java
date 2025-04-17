@@ -11,6 +11,7 @@ import com.example.github_event_capture.utils.HttpResponseMsg;
 import org.springframework.stereotype.Service;
 import com.example.github_event_capture.security.SecurityContextService;
 import com.example.github_event_capture.service.MongoTemplateService;
+import com.example.github_event_capture.service.impl.MonitorServiceImpl;
 
 
 
@@ -18,12 +19,14 @@ import com.example.github_event_capture.service.MongoTemplateService;
 public class EventFiltersServiceImpl {
     private final FilterRepository filterRepository;
     private final MongoTemplateService mongoTemplateService;
+    private final MonitorServiceImpl monitorService;
     private final Logger LOGGER = LoggerFactory.getLogger(EventFiltersServiceImpl.class);
 
     public EventFiltersServiceImpl(FilterRepository filterRepository,
-                                   MongoTemplateService mongoTemplateService) {
+                                   MongoTemplateService mongoTemplateService, MonitorServiceImpl monitorService) {
         this.filterRepository = filterRepository;
         this.mongoTemplateService = mongoTemplateService;
+        this.monitorService = monitorService;
     }
 
     public Result createFilters(FiltersDTO filtersDTO) {
@@ -44,6 +47,7 @@ public class EventFiltersServiceImpl {
             mongoTemplateService.setDomainClass(EventTypeMap.class);
             mongoTemplateService.setBulkOps();
             mongoTemplateService.bulkWrite(filtersDTO.getEventTypes(), uid, keyField, valField);
+            monitorService.recordMongoDBWrite((double) filtersDTO.getEventTypes().size());
 
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
