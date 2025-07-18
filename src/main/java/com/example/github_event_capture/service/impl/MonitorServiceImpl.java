@@ -25,26 +25,22 @@ public class MonitorServiceImpl {
                 .tags("metrics", "write-count")
                 .tags("db", "mongodb")
                 .register(prometheusMeterRegistry);
-        mongodb_write_count.increment();
 
         this.mongodb_read_count = Counter.builder("database.throughput")
                 .description("monitor the number of mongdb reads")
                 .tags("metrics", "read-count")
                 .tags("db", "mongodb")
                 .register(prometheusMeterRegistry);
-        mongodb_read_count.increment();
 
         this.postgres_write_count = Counter.builder("database.throughput")
                 .tags("metrics", "write-count")
                 .tags("db", "postgres")
                 .register(prometheusMeterRegistry);
-        postgres_write_count.increment();
 
         this.postgres_read_count = Counter.builder("database.throughput")
                 .tags("metrics", "read-count")
                 .tags("db", "postgres")
                 .register(prometheusMeterRegistry);
-        postgres_read_count.increment();
     }
 
     public void recordMongoDBWrite(double amount) {
