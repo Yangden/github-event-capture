@@ -41,6 +41,7 @@ public class QueueServiceImpl implements QueueService {
     public List<String> receiveMessage( ) {
         ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
+                .waitTimeSeconds(20) // set to maximum waiting time
                 .build();
         try {
             List<Message> messageList = sqsClient.receiveMessage(receiveMessageRequest).messages();
