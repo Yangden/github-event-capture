@@ -21,6 +21,8 @@ services:
       - "9092:9092"
     depends_on:
       - zookeeper
+    volumes:
+      - kafka_data:/bitnami/kafka
   
   mongodb:
     image: mongo:latest
@@ -81,6 +83,7 @@ services:
 volumes:
   postgres_data:
   mongodb_data:
+  kafka_data:
   prometheus_data:
   grafana_data:      
 
