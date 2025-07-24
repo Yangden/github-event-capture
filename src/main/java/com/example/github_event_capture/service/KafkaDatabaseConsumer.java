@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.example.github_event_capture.service.impl.MonitorServiceImpl;
 import com.example.github_event_capture.service.MongoTemplateService;
 
+
 @Service
 public final class KafkaDatabaseConsumer {
     private final ObjectMapper mapper = new ObjectMapper(); // map to dto object
@@ -42,6 +43,7 @@ public final class KafkaDatabaseConsumer {
             //LOGGER.info("Runtime type of eventObj: {}", eventObj.getClass().getName());
             /* write to the database */
             mongoTemplateService.saveEvent(eventObj);
+            monitorService.recordMongoDBWrite(1);
 
         } catch (JsonProcessingException e) {
             LOGGER.error("deserialization fail: " + e.getMessage());
