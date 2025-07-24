@@ -27,6 +27,8 @@ services:
     container_name: mongodb_container
     ports:
       - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
 
   PostgresSQL:
     image: postgres:latest
@@ -69,9 +71,17 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
       - prometheus
+  
+  kafka-exporter:
+    image: danielqsj/kafka-exporter
+    command: ["--kafka.server=kafka:9092"]
+    ports:
+      - 9308:9308
 
 volumes:
   postgres_data:
   mongodb_data:
   prometheus_data:
   grafana_data:      
+
+
