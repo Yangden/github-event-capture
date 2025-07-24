@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.core.BulkOperations;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import com.example.github_event_capture.entity.Event;
 
 
 @Service
@@ -27,6 +28,12 @@ public class MongoTemplateService {
         this.ops = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, domainClass);
     }
 
+     /**********************************************
+     * write events to the corresponding collections
+     **********************************************/
+     public void saveEvent(Event event) {
+         mongoTemplate.save(event);
+     }
     /****************
     bulk operations
      **************/

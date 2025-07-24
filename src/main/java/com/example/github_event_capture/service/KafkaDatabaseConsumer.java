@@ -1,7 +1,6 @@
 package com.example.github_event_capture.service;
 
 import com.example.github_event_capture.entity.Event;
-import com.example.github_event_capture.entity.dto.IssueEventDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -10,19 +9,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.github_event_capture.utils.EventAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.example.github_event_capture.repository.EventRepository;
 import com.example.github_event_capture.service.impl.MonitorServiceImpl;
+import com.example.github_event_capture.service.MongoTemplateService;
 
 @Service
 public final class KafkaDatabaseConsumer {
     private final ObjectMapper mapper = new ObjectMapper(); // map to dto object
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaDatabaseConsumer.class);
     private MonitorServiceImpl monitorService;
+    private MongoTemplateService mongoTemplateService;
 
-    private final EventRepository eventRepository;
-    public KafkaDatabaseConsumer(EventRepository eventRepository, MonitorServiceImpl monitorService) {
-        this.eventRepository = eventRepository;
+
+    public KafkaDatabaseConsumer(MonitorServiceImpl monitorService,
+                                 MongoTemplateService mongoTemplateService) {
         this.monitorService = monitorService;
+        this.mongoTemplateService = mongoTemplateService;
     }
 
     /* Fetch events from kafka and push them to the database*/
@@ -40,7 +41,8 @@ public final class KafkaDatabaseConsumer {
             LOGGER.info("deserialized event structure: {}", mapper.writeValueAsString(eventObj));
             //LOGGER.info("Runtime type of eventObj: {}", eventObj.getClass().getName());
             /* write to the database */
-            eventRepository.save(eventObj);
+            mongoTemplateService.saveEvent(eventObj);
+
         } catch (JsonProcessingException e) {
             LOGGER.error("deserialization fail: " + e.getMessage());
             e.printStackTrace();
