@@ -13,9 +13,9 @@ import com.example.github_event_capture.service.EventProducer;
 public class WebHookController {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebHookController.class);
 
-    private final EventProducer<String, String> eventProducer;
+    private final EventProducerImpl eventProducer;
 
-    public WebHookController(EventProducerImpl<String, String> eventProducerImpl) {
+    public WebHookController(EventProducerImpl eventProducerImpl) {
         this.eventProducer = eventProducerImpl;
     }
 
