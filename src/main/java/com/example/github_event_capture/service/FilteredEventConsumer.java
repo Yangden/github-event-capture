@@ -48,12 +48,9 @@ public class FilteredEventConsumer {
         String eventType = record.key();
         String eventContent = record.value();
 
-        long startTime = System.currentTimeMillis();
         /* get the list of user ids */
         Optional<EventTypeMap> mapContent = eventTypeMapRepository.findByEventType(eventType);
         monitorService.recordMongoDBRead(1);
-        long endTime = System.currentTimeMillis();
-        LOGGER.info("array-read mongodb query latency: {}", endTime - startTime);
 
         /* retreive uids to query emails*/
         EventTypeMap map = mapContent.get();
