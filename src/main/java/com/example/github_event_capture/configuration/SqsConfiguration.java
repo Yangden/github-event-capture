@@ -8,8 +8,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.http.crt.AwsCrtAsyncHttpClient;
 
 import java.net.URI;
+import java.time.Duration;
 
 @Configuration
 public class SqsConfiguration {
@@ -39,6 +41,11 @@ public class SqsConfiguration {
         StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(credentials);
 
         return SqsAsyncClient.builder().region(Region.US_EAST_1)
+                .httpClientBuilder(AwsCrtAsyncHttpClient.builder()
+                        .maxConcurrency(200)
+                        .connectionAcquisitionTimeout(Duration.ofSeconds(30))
+                        .connectionMaxIdleTime(Duration.ofMinutes(5))
+                        .connectionTimeout(Duration.ofSeconds(5)))
                 .endpointOverride(URI.create("http://localhost:4566"))
                 .credentialsProvider(credentialsProvider)
                 .build();
