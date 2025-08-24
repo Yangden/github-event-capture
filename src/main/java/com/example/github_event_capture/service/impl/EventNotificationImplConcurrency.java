@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import com.example.github_event_capture.service.impl.MonitorServiceImpl;
+import com.google.common.util.concurrent.RateLimiter;
 
 @Service
 public class EventNotificationImplConcurrency implements DisposableBean {
@@ -35,6 +36,8 @@ public class EventNotificationImplConcurrency implements DisposableBean {
 
     private final AsyncQueueserviceImpl asyncQueueService;
     private int consecutiveErrors = 0;
+
+    private final RateLimiter rateLimiter = RateLimiter.create(10.0);
 
     @Value("30")
     private int errorRetrySeconds;
@@ -60,6 +63,7 @@ public class EventNotificationImplConcurrency implements DisposableBean {
     public void pollMessages() {
         while (RUNNING && !Thread.currentThread().isInterrupted()) {
             try {
+                rateLimiter.acquire();
                 CompletableFuture<ReceiveMessageResponse> received = asyncQueueService.receiveMessage();
                 received.thenAccept(responses -> {
                     if (!responses.hasMessages()) {
@@ -69,9 +73,9 @@ public class EventNotificationImplConcurrency implements DisposableBean {
                     monitorService.recordEventCountBeforDelete(responses.messages().size());
                     responses.messages().forEach(
                             message -> {
-                                asyncQueueService.deleteMessage(message.receiptHandle());
+                               asyncQueueService.deleteMessage(message.receiptHandle());
                                 /* send email notification */
-                                try {
+                               try {
                                     QueueMessageDTO messageDTO = mapToObject.readValue(message.body(), QueueMessageDTO.class);
                                     LOGGER.info("mapped to QueueMessageDTO succesfully");
                                     String emailBody = FormatEmail.getFormatEmail(messageDTO.getEvent());
@@ -86,7 +90,7 @@ public class EventNotificationImplConcurrency implements DisposableBean {
                     );
                 }).exceptionally(ex-> {
                     consecutiveErrors++;
-                    LOGGER.error("Error receiving the message: {}", ex.getMessage());
+                    LOGGER.error("Error receiving the message: {}", ex.getMessage(), ex.getCause());
 
                     if (consecutiveErrors >= maxConsecutiveErrors) {
                         LOGGER.info("Too many consecutive errors, stop consumer for {} seconds", errorRetrySeconds);
