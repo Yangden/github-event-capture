@@ -1,0 +1,19 @@
+spring:
+  kafka:
+    bootstrap-servers: pkc-p11xm.us-east-1.aws.confluent.cloud:9092
+
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username='FDKSISQZQR3P5EXH' password='cfltmza+h+NfstkDbNf3BmZcqiXVEv5fRbfgLaqdXZtANpPyFEYv2D1H391FF9gQ';
+
+    producer:
+      acks: all
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+    consumer:
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest # always start offset at the earliest message(integrity)
