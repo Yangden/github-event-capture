@@ -118,6 +118,11 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>aws-crt-client</artifactId>
 		</dependency>
+		<!-- aws sts -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>sts</artifactId>
+		</dependency>
 		<!-- dependencies for spring security-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
