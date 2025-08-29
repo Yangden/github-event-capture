@@ -77,7 +77,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-			<version>2.7.3</version>
+			<version>3.3.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -112,6 +112,11 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>ses</artifactId>
+		</dependency>
+		<!-- amazon crt client -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>aws-crt-client</artifactId>
 		</dependency>
 		<!-- dependencies for spring security-->
 		<dependency>
@@ -160,6 +165,11 @@
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>33.4.8-jre</version>
 		</dependency>
 
 	</dependencies>
