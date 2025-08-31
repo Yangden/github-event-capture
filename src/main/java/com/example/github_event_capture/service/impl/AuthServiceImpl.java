@@ -2,15 +2,12 @@ package com.example.github_event_capture.service.impl;
 
 import com.example.github_event_capture.repository.UserRepository;
 import com.example.github_event_capture.utils.PasswordUtil;
-import org.apache.coyote.Response;
-import org.springframework.http.ResponseEntity;
+import io.jsonwebtoken.Jwt;
 import org.springframework.stereotype.Service;
 import com.example.github_event_capture.entity.dto.UserDTO;
 import com.example.github_event_capture.entity.User;
 import com.example.github_event_capture.utils.Result;
 import com.example.github_event_capture.utils.HttpResponseMsg;
-import com.example.github_event_capture.utils.Jwtutil;
-import com.example.github_event_capture.service.impl.MonitorServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,11 +16,13 @@ public class AuthServiceImpl {
     private final UserRepository userRepository;
     private final Logger LOGGER = LoggerFactory.getLogger(AuthServiceImpl.class);
     private final MonitorServiceImpl monitorService;
+    private final JwtService jwtService;
 
-    public AuthServiceImpl(UserRepository userRepository, MonitorServiceImpl monitorService)
+    public AuthServiceImpl(UserRepository userRepository, MonitorServiceImpl monitorService, JwtService jwtService)
     {
         this.userRepository = userRepository;
         this.monitorService = monitorService;
+        this.jwtService = jwtService;
     }
 
 
@@ -58,7 +57,7 @@ public class AuthServiceImpl {
         }
 
         /* grant jwt token: login success */
-        String jws = Jwtutil.generateToken(user.getId().toString(), user.getEmail());
+        String jws = jwtService.generateToken(user.getId().toString(), user.getEmail());
         return Result.success(HttpResponseMsg.OK, jws);
     }
 
