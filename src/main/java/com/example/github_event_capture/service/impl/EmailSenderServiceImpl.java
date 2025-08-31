@@ -2,11 +2,13 @@ package com.example.github_event_capture.service.impl;
 
 import com.example.github_event_capture.entity.dto.QueueMessageDTO;
 import com.example.github_event_capture.service.EmailSenderService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
 import software.amazon.awssdk.services.ses.model.*;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +22,16 @@ public class EmailSenderServiceImpl implements EmailSenderService {
     private final SesClient sesClient = SesClient.builder()
             .region(Region.US_EAST_1)
             .credentialsProvider(profileCredentialsProvider).build();
-    private final SesAsyncClient sesAsyncClient = SesAsyncClient.builder()
-            .region(Region.US_EAST_1)
-            .credentialsProvider(profileCredentialsProvider).build();
+    private final SesAsyncClient sesAsyncClient;
+    private final AwsCredentialsProvider awsCredentialProvider;
+
+    public EmailSenderServiceImpl(@Qualifier("provideCredential") AwsCredentialsProvider awsCredentialProvider) {
+        this.awsCredentialProvider = awsCredentialProvider;
+        sesAsyncClient = SesAsyncClient.builder()
+                .credentialsProvider(awsCredentialProvider)
+                .region(Region.US_EAST_1)
+                .build();
+    }
 
    public SendEmailRequest buildRequest(String sender, String receiver, String subject, String bodyHTML) {
        Destination destination = Destination.builder()
