@@ -3,6 +3,7 @@ package com.example.github_event_capture.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
@@ -19,7 +20,7 @@ public class AwsCredentialsConfig {
             .build();
 
     @Bean
-    public StsAssumeRoleCredentialsProvider provideCredential() {
+    public AwsCredentialsProvider provideCredential() {
         AssumeRoleRequest request = AssumeRoleRequest.builder()
                 .roleArn(roleArn)
                 .roleSessionName(roleSessionName)
