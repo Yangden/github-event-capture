@@ -1,6 +1,6 @@
 package com.example.github_event_capture.configuration;
 
-import com.example.github_event_capture.utils.Jwtutil;
+import com.example.github_event_capture.service.impl.JwtService;
 import jakarta.servlet.FilterChain;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,11 +20,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserRepository userRepository;
     private final CustomUserDetailService customUserDetailService;
+    private final JwtService jwtService;
 
     public JwtAuthenticationFilter(UserRepository userRepository,
-                                   CustomUserDetailService customUserDetailService) {
+                                   CustomUserDetailService customUserDetailService,
+                                   JwtService jwtService) {
         this.userRepository = userRepository;
         this.customUserDetailService = customUserDetailService;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -39,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             final String jws = authHeader.substring(7); // get signed jwt token
-            String userEmail = Jwtutil.extractEmail(jws);
+            String userEmail = jwtService.extractEmail(jws);
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 

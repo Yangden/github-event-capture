@@ -1,12 +1,23 @@
 package com.example.github_event_capture.service.impl;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.http.crt.AwsCrtAsyncHttpClient;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 import software.amazon.awssdk.services.sqs.batchmanager.SqsAsyncBatchManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -16,10 +27,11 @@ public class AsyncQueueserviceImpl {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueServiceImpl.class);
     private final SqsAsyncClient sqsAsyncClient;
     private final SqsAsyncBatchManager batchManager;
-    private static final String queueUrl = "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/local-demo-queue";
+    private static final String queueUrl = "https://sqs.us-east-1.amazonaws.com/038462794128/EventNotificationsQueue";
+
     private final MonitorServiceImpl monitorServiceImpl;
 
-    public AsyncQueueserviceImpl(@Qualifier("sqsAsyncClient") SqsAsyncClient sqsAsyncClient, MonitorServiceImpl monitorServiceImpl) {
+    public AsyncQueueserviceImpl(@Qualifier("sqsAsyncClientCloud") SqsAsyncClient sqsAsyncClient, MonitorServiceImpl monitorServiceImpl) {
         this.sqsAsyncClient = sqsAsyncClient;
         this.batchManager = sqsAsyncClient.batchManager();
         this.monitorServiceImpl = monitorServiceImpl;
@@ -40,9 +52,6 @@ public class AsyncQueueserviceImpl {
                         LOGGER.info("Sent message successfully");
                         monitorServiceImpl.recordEventCountSqsConsumer(1);
                     }
-                }).exceptionally(ex -> {
-                    LOGGER.error("error sending message : {}", ex.getMessage());
-                    return null;
                 });
     }
 
@@ -61,7 +70,7 @@ public class AsyncQueueserviceImpl {
         ReceiveMessageRequest request = ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .maxNumberOfMessages(10)
-                .waitTimeSeconds(5)
+                .waitTimeSeconds(20)
                 .build();
 
         return sqsAsyncClient.receiveMessage(request);
