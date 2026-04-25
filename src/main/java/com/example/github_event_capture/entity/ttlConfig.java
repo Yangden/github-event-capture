@@ -1,11 +1,12 @@
 package com.example.github_event_capture.entity;
 
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "ttlConfig")
 public class ttlConfig {
-    @Field("uid")
+    @Id
     private long uid;
 
     @Field("day")
@@ -26,6 +27,10 @@ public class ttlConfig {
         return hour;
     }
 
+    public void setUid(long uid) {
+        this.uid = uid;
+    }
+
     public void setDay(int day) {
         this.day = day;
     }
@@ -33,6 +38,4 @@ public class ttlConfig {
     public void setHour(int hour) {
         this.hour = hour;
     }
-
-    
 }
