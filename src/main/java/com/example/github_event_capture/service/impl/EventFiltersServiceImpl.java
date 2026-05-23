@@ -4,6 +4,7 @@ import com.example.github_event_capture.entity.dto.FiltersDTO;
 import com.example.github_event_capture.utils.Result;
 import com.example.github_event_capture.entity.Filters;
 import com.example.github_event_capture.entity.EventTypeMap;
+import com.example.github_event_capture.entity.RepositoryMap;
 import com.example.github_event_capture.repository.FilterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,12 +43,18 @@ public class EventFiltersServiceImpl {
             filterRepository.save(filters);
             /* write to the eventTypeSubscribers */
             LOGGER.info("start bulk writes to the inverted index");
-            String keyField = "eventType";
-            String valField = "uids";
             mongoTemplateService.setDomainClass(EventTypeMap.class);
             mongoTemplateService.setBulkOps();
-            mongoTemplateService.bulkWrite(filtersDTO.getEventTypes(), uid, keyField, valField);
+            mongoTemplateService.bulkWrite(filtersDTO.getEventTypes(), uid, "eventType", "uids");
             monitorService.recordMongoDBWrite((double) filtersDTO.getEventTypes().size());
+
+            /* write to the repositorySubscribers */
+            if (filtersDTO.getRepositories() != null && !filtersDTO.getRepositories().isEmpty()) {
+                LOGGER.info("start bulk writes to repository subscribers");
+                mongoTemplateService.setDomainClass(RepositoryMap.class);
+                mongoTemplateService.setBulkOps();
+                mongoTemplateService.bulkWrite(filtersDTO.getRepositories(), uid, "repository", "uids");
+            }
 
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
