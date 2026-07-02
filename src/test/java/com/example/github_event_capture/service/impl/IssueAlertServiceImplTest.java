@@ -1,11 +1,15 @@
 package com.example.github_event_capture.service.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.example.github_event_capture.entity.AlertRecord;
 import com.example.github_event_capture.entity.Filters;
 import com.example.github_event_capture.entity.RepositoryMap;
 import com.example.github_event_capture.entity.User;
@@ -22,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -285,5 +290,33 @@ public class IssueAlertServiceImplTest {
         service.scanAndAlert();
 
         verifyNoInteractions(asyncQueueService);
+    }
+
+    // --- Happy path ---
+
+    // All checks pass: batchSend must be called and an AlertRecord with the correct
+    // issueId and uid must be saved to prevent re-alerting on the next scheduler run.
+    @Test
+    void allConditionsMetEnqueuesAndSavesRecord() {
+        long uid = 1L;
+        long issueId = 100L;
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(uid, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(issueId, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(makeRepoMap("my-repo", uid)));
+        when(filterRepository.findByUserId(uid)).thenReturn(
+                java.util.Optional.of(makeFilters(uid, "issues")));
+        when(alertRecordRepository.existsByIssueIdAndUid(issueId, uid)).thenReturn(false);
+        when(userRepository.findById(uid)).thenReturn(
+                java.util.Optional.of(makeUser(uid, "user@test.com")));
+
+        service.scanAndAlert();
+
+        verify(asyncQueueService).batchSend(anyString());
+        ArgumentCaptor<AlertRecord> captor = ArgumentCaptor.forClass(AlertRecord.class);
+        verify(alertRecordRepository).save(captor.capture());
+        assertEquals(issueId, captor.getValue().getIssueId());
+        assertEquals(uid, captor.getValue().getUid());
     }
 }
