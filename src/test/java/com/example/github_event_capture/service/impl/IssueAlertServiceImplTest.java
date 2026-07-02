@@ -115,6 +115,7 @@ public class IssueAlertServiceImplTest {
 
     // --- Scan-level early-exit tests ---
 
+
     // No ttlConfig documents exist — the service cannot compute a cutoff so it returns immediately.
     // Nothing downstream (MongoTemplate, AlertRecordRepository) should be touched.
     @Test
@@ -139,5 +140,150 @@ public class IssueAlertServiceImplTest {
 
         verifyNoInteractions(repositoryMapRepository);
         verifyNoInteractions(alertRecordRepository);
+    }
+
+    // --- Per-subscriber guard clause tests ---
+
+    // The issue's repository has no RepositorySubscribers document — no subscribers to notify.
+    @Test
+    void noRepoMapSkipsIssue() {
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(1L, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(100L, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.empty());
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(filterRepository);
+        verifyNoInteractions(alertRecordRepository);
+    }
+
+    // RepositoryMap exists but its uid list is null — addUid was never called.
+    @Test
+    void emptyUidListSkipsIssue() {
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(1L, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(100L, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        RepositoryMap emptyMap = new RepositoryMap();
+        emptyMap.setRepository("my-repo");
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(emptyMap));
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(filterRepository);
+        verifyNoInteractions(alertRecordRepository);
+    }
+
+    // The subscriber uid is in RepositoryMap but has no Filters document at all.
+    @Test
+    void subscriberHasNoFiltersSkips() {
+        long uid = 1L;
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(uid, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(100L, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(makeRepoMap("my-repo", uid)));
+        when(filterRepository.findByUserId(uid)).thenReturn(java.util.Optional.empty());
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(alertRecordRepository);
+    }
+
+    // The subscriber has Filters but has not subscribed to the "issues" event type.
+    @Test
+    void filterMissingIssuesTypeSkips() {
+        long uid = 1L;
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(uid, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(100L, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(makeRepoMap("my-repo", uid)));
+        when(filterRepository.findByUserId(uid)).thenReturn(
+                java.util.Optional.of(makeFilters(uid, "push")));
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(alertRecordRepository);
+    }
+
+    // The subscriber appears in RepositoryMap but has no ttlConfig — their uid is absent from
+    // the configByUid map built at the start of the scan.
+    @Test
+    void noTtlConfigForSubscriberSkips() {
+        long uidWithConfig = 1L;
+        long uidWithoutConfig = 2L;
+        when(ttlConfigRepository.findAll()).thenReturn(
+                List.of(makeTtlConfig(uidWithConfig, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(100L, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(makeRepoMap("my-repo", uidWithoutConfig)));
+        when(filterRepository.findByUserId(uidWithoutConfig)).thenReturn(
+                java.util.Optional.of(makeFilters(uidWithoutConfig, "issues")));
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(alertRecordRepository);
+    }
+
+    // The issue is open but hasn't crossed the subscriber's personal TTL yet.
+    // User TTL = 3 days; issue opened 2 days ago — should be skipped.
+    @Test
+    void issueNotYetPastPersonalTtlSkips() {
+        long uid = 1L;
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(uid, 3, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(100L, "my-repo", Instant.now().minus(2, ChronoUnit.DAYS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(makeRepoMap("my-repo", uid)));
+        when(filterRepository.findByUserId(uid)).thenReturn(
+                java.util.Optional.of(makeFilters(uid, "issues")));
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(alertRecordRepository);
+    }
+
+    // An AlertRecord already exists for this (issueId, uid) pair — alert was already sent.
+    @Test
+    void alertAlreadySentSkips() {
+        long uid = 1L;
+        long issueId = 100L;
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(uid, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(issueId, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(makeRepoMap("my-repo", uid)));
+        when(filterRepository.findByUserId(uid)).thenReturn(
+                java.util.Optional.of(makeFilters(uid, "issues")));
+        when(alertRecordRepository.existsByIssueIdAndUid(issueId, uid)).thenReturn(true);
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(userRepository);
+        verifyNoInteractions(asyncQueueService);
+    }
+
+    // AlertRecord does not exist yet but the User record cannot be found in PostgreSQL.
+    @Test
+    void userNotFoundSkips() {
+        long uid = 1L;
+        long issueId = 100L;
+        when(ttlConfigRepository.findAll()).thenReturn(List.of(makeTtlConfig(uid, 1, 0)));
+        givenAggregationReturns(List.of(
+                makeOpenIssue(issueId, "my-repo", Instant.now().minus(48, ChronoUnit.HOURS))));
+        when(repositoryMapRepository.findByRepository("my-repo")).thenReturn(
+                java.util.Optional.of(makeRepoMap("my-repo", uid)));
+        when(filterRepository.findByUserId(uid)).thenReturn(
+                java.util.Optional.of(makeFilters(uid, "issues")));
+        when(alertRecordRepository.existsByIssueIdAndUid(issueId, uid)).thenReturn(false);
+        when(userRepository.findById(uid)).thenReturn(java.util.Optional.empty());
+
+        service.scanAndAlert();
+
+        verifyNoInteractions(asyncQueueService);
     }
 }
