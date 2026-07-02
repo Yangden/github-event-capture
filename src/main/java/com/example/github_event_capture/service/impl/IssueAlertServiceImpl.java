@@ -177,6 +177,13 @@ public class IssueAlertServiceImpl {
         private Instant createdAt;
         private String repositoryName;
 
+        OpenIssueResult(long issueId, String action, Instant createdAt, String repositoryName) {
+            this.issueId = issueId;
+            this.action = action;
+            this.createdAt = createdAt;
+            this.repositoryName = repositoryName;
+        }
+
         public long getIssueId() {
             return issueId;
         }
