@@ -6,6 +6,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.example.github_event_capture.utils.EventAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +16,8 @@ import com.example.github_event_capture.service.MongoTemplateService;
 
 @Service
 public final class KafkaDatabaseConsumer {
-    private final ObjectMapper mapper = new ObjectMapper(); // map to dto object
+    // JavaTimeModule so Instant fields (e.g. issue.created_at) deserialize from ISO-8601 strings.
+    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaDatabaseConsumer.class);
     private MonitorServiceImpl monitorService;
     private MongoTemplateService mongoTemplateService;

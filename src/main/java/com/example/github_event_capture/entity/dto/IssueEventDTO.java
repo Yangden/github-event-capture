@@ -11,8 +11,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class IssueEventDTO extends Event {
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class IssueInfo {
+        // Persisted as "eventId" (not "id") on purpose: Spring Data Mongo remaps any field
+        // literally named "id" — even nested — to the document key "_id". This field is the
+        // GitHub-global issue id used to group events per issue, not a document identity, so
+        // it keeps its own name. @JsonProperty("id") still binds the webhook's issue.id.
         @JsonProperty("id")
-        private long id;
+        private long eventId;
 
         @JsonProperty("state")
         private String state;
@@ -23,8 +27,8 @@ public class IssueEventDTO extends Event {
         @JsonProperty("created_at")
         private Instant createdAt;
 
-        public long getId() {
-            return id;
+        public long getEventId() {
+            return eventId;
         }
 
         public String getState() {
@@ -63,7 +67,7 @@ public class IssueEventDTO extends Event {
     }
 
     public long getIssueId() {
-        return issueInfo != null ? issueInfo.getId() : 0;
+        return issueInfo != null ? issueInfo.getEventId() : 0;
     }
 
     public String getRepositoryName() {

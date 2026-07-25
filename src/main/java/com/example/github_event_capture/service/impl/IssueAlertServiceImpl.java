@@ -84,11 +84,12 @@ public class IssueAlertServiceImpl {
     }
 
     // IssueEventDTO is persisted via mongoTemplate.save(), so Spring Data uses Java field names —
-    // issueInfo.id, issueInfo.createdAt, repository.name — not the @JsonProperty names.
+    // issueInfo.eventId, issueInfo.createdAt, repository.name — not the @JsonProperty names.
+    // issueInfo.eventId (not issueInfo.id) because Spring Data remaps a nested "id" field to "_id".
     private List<OpenIssueResult> queryOpenIssues(Instant cutoff) {
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.sort(Sort.Direction.DESC, "issueInfo.createdAt"),
-                Aggregation.group("issueInfo.id")
+                Aggregation.group("issueInfo.eventId")
                         .first("action").as("action")
                         .first("issueInfo.createdAt").as("createdAt")
                         .first("repository.name").as("repositoryName"),
@@ -169,7 +170,7 @@ public class IssueAlertServiceImpl {
     }
 
     // Projection target for the aggregation — not a MongoDB entity, only used for result mapping.
-    // _id in the aggregation output is the group key (issueInfo.id).
+    // _id in the aggregation output is the group key (issueInfo.eventId).
     static class OpenIssueResult {
         @Field("_id")
         private long issueId;
