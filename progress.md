@@ -53,9 +53,11 @@ non-deterministically and production won. Because this machine has ambient AWS c
 mis-injected client (i.e. after the `@Disabled` tests were re-enabled but before this fix) sent
 real messages to production SQS.
 
-**→ OWNER ACTION: check / purge the real `EventNotificationsQueue` in AWS account 038462794128**
-if residual test messages matter. The subagent could not verify queue depth (IAM user lacks
-`sqs:GetQueueAttributes`; assuming the app role was correctly blocked as out-of-scope).
+**Owner decision (2026-07-25): stage is local-only, cloud/prod SQS is out of scope** — the
+prod-queue check/purge is NOT an action item. The test is now correctly pinned to LocalStack
+(verified `endpointOverride=localhost:4566`), so future runs stay local. The subagent could not
+verify prod queue depth anyway (IAM user lacks `sqs:GetQueueAttributes`; assuming the app role was
+correctly blocked as out-of-scope).
 
 Fix (test-only, in `LocalStackSqsTestConfig.java`): replaced the plain `@Bean` with a
 `BeanDefinitionRegistryPostProcessor` that unconditionally removes and replaces the
@@ -66,9 +68,9 @@ No assertions were weakened; scenarios 1/4/5 pass because messages now actually 
 LocalStack queue the test polls.
 
 ### Still-open (non-blocking) follow-ups
-- The root cause of the leak — the hardcoded production queue URL + real STS creds in the
-  `sqsAsyncClientCloud` bean — is Plan 1 Step 0 / ROADMAP Phase 2.5 (externalize the queue URL),
-  deliberately skipped. Worth revisiting so no test can ever resolve to real AWS.
+- The root cause — the hardcoded production queue URL + real STS creds in the
+  `sqsAsyncClientCloud` bean (Plan 1 Step 0 / ROADMAP Phase 2.5, externalize the queue URL) — is
+  a **later-stage** item. Current stage is local-only, so it's parked, not now.
 
 ---
 
