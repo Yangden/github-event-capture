@@ -26,7 +26,6 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
@@ -59,28 +58,26 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 // this test's own SqsClient, so the AWS-shaped queue URL resolves against the LocalStack queue
 // this test creates. Verified manually against running LocalStack before writing this class.
 //
-// Note: IssueEventDTO seeding below explicitly registers JavaTimeModule on its ObjectMapper.
-// KafkaDatabaseConsumer's production ObjectMapper (`new ObjectMapper()`, no module
-// registration) does NOT have JavaTimeModule registered and throws
-// InvalidDefinitionException when deserializing IssueInfo.createdAt (java.time.Instant) —
-// verified directly against IssueEventDTO. That looks like a real production bug (any GitHub
-// issue webhook would fail to persist), reported separately; not fixed here per scope (src/main
-// is off-limits for this test task).
+// CRITICAL history: a plain @Bean-based override in LocalStackSqsTestConfig did NOT reliably win
+// against SqsConfiguration's production "sqsAsyncClientCloud" bean (registration order between
+// this test's @Import and the app's component-scanned production config is not guaranteed), so
+// scanAndAlert() was silently sending real alert messages to the real production AWS SQS queue
+// during test runs. Fixed by having LocalStackSqsTestConfig replace the bean definition via a
+// BeanDefinitionRegistryPostProcessor instead, which is order-independent. See that class's
+// header comment for the full analysis.
 //
-// MAIN-SOURCE BUG FOUND (see @Disabled scenarios below for details): IssueAlertServiceImpl's
-// aggregation groups on "issueInfo.id" (queryOpenIssues()), but IssueEventDTO's IssueInfo.id
-// field is named exactly "id" — Spring Data MongoDB's default convention treats ANY property
-// literally named "id" (not just @Id-annotated root identifiers) as an identifier and silently
-// remaps it to the document field "_id", even on a nested/embedded object. So the persisted
-// field path is actually "issueInfo._id", not "issueInfo.id". Aggregation.group("issueInfo.id")
-// therefore groups on a path that does not exist in any document, so every document's group key
-// evaluates to null and ALL issues across the whole collection collapse into a single pseudo-
-// group. When that group survives the match stage, mapping its null "_id" into
-// OpenIssueResult's `long issueId` constructor parameter throws MappingInstantiationException
-// (Spring Data cannot pass null into a primitive long parameter) — scanAndAlert() effectively
-// crashes instead of alerting whenever at least one issue is genuinely past its TTL cutoff.
-// Confirmed directly: grouping on "issueInfo._id" instead of "issueInfo.id" against the same
-// persisted document maps correctly. Not fixed here — src/main is off-limits for this task.
+// Note: IssueEventDTO seeding below explicitly registers JavaTimeModule on its ObjectMapper,
+// matching KafkaDatabaseConsumer's production ObjectMapper (also registers JavaTimeModule),
+// so IssueInfo.createdAt (java.time.Instant) deserializes the same way in both places.
+//
+// Field-path fix history: IssueAlertServiceImpl's aggregation groups on "issueInfo.eventId".
+// IssueEventDTO's nested issue-id field was previously named "id", which Spring Data MongoDB's
+// default convention silently remaps to the document field "_id" on any property literally
+// named "id" (even nested/embedded), so the persisted field path did not match
+// "issueInfo.id" and the aggregation crashed. The field was renamed to "eventId" (keeping
+// @JsonProperty("id") for webhook JSON binding) and the aggregation now groups on
+// "issueInfo.eventId", which lines up with what's actually persisted. Fixed in src/main
+// (commit b465480); all scenarios below are enabled.
 // @AutoConfigureObservability: Spring Boot Test disables metrics export by default for
 // @SpringBootTest (via its built-in DisableObservabilityContextCustomizer), which leaves no
 // PrometheusMeterRegistry bean in the context. MonitorServiceImpl has a hard constructor
@@ -276,14 +273,6 @@ public class IssueAlertIntegrationTest {
 
     // --- Scenario 1: happy path ---
 
-    // Disabled: throws MappingInstantiationException from queryOpenIssues() — see the
-    // "MAIN-SOURCE BUG FOUND" note in the class-level comment. Any real open issue past its
-    // TTL cutoff hits this. Re-enable once IssueAlertServiceImpl groups on the field path that
-    // is actually persisted ("issueInfo._id"), not "issueInfo.id".
-    @Disabled("Real bug: Aggregation.group(\"issueInfo.id\") groups on a nonexistent field path "
-            + "(Spring Data Mongo remaps IssueInfo.id -> issueInfo._id), producing a null group "
-            + "key that fails to bind to OpenIssueResult's primitive `long issueId` constructor "
-            + "parameter. See class-level comment for full analysis.")
     @Test
     void happyPathEnqueuesAlertAndRecordsHistory() throws Exception {
         String repo = "octocat/happy-repo";
@@ -356,10 +345,6 @@ public class IssueAlertIntegrationTest {
 
     // --- Scenario 4: reopened issue, latest event wins in the alerting direction ---
 
-    // Disabled: same MappingInstantiationException as scenario 1 — this scenario also has an
-    // issue that survives the match stage. See class-level "MAIN-SOURCE BUG FOUND" comment.
-    @Disabled("Real bug: Aggregation.group(\"issueInfo.id\") groups on a nonexistent field path; "
-            + "see class-level comment for full analysis.")
     @Test
     void reopenedIssueLatestEventWinsAlerts() throws Exception {
         String repo = "octocat/reopened-repo";
@@ -381,11 +366,6 @@ public class IssueAlertIntegrationTest {
 
     // --- Scenario 5: deduplication across two scans ---
 
-    // Disabled: same MappingInstantiationException as scenario 1 — the first scan already
-    // throws before any message is ever enqueued. See class-level "MAIN-SOURCE BUG FOUND"
-    // comment.
-    @Disabled("Real bug: Aggregation.group(\"issueInfo.id\") groups on a nonexistent field path; "
-            + "see class-level comment for full analysis.")
     @Test
     void secondScanDoesNotReAlertAlreadyNotifiedSubscriber() throws Exception {
         String repo = "octocat/dedup-repo";
