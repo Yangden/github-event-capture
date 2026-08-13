@@ -11,3 +11,15 @@ scrape_configs:
       - targets: ['host.docker.internal:8080']
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s
+
+  - job_name: 'kafka-metrics'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  - job_name: 'router-telemetry-updates'
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
