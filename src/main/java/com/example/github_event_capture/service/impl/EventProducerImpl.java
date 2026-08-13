@@ -1,6 +1,5 @@
 package com.example.github_event_capture.service.impl;
 
-import com.example.github_event_capture.service.EventProducer;
 import com.example.github_event_capture.utils.EventAccess;
 import com.example.github_event_capture.entity.Event;
 import org.springframework.stereotype.Service;
