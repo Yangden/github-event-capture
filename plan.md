@@ -1,28 +1,49 @@
+# Design Plans 
+
+Analyze the given context to design the architecture of the systems. Construct solutions to 
+the given problems. 
+
+---
+
+# Implementation Plans 
+
+Plan the implementations of the designs. Make sure the implementations are logically coherent, 
+and easy to test and commit to git repo. 
+
+---
+
+
+
 # Test Plans
 
-All test implementation plans for this repository live in this file. Each section is one
-planned (or completed) test effort; keep status lines current as work lands.
+All test plans for this repository live in this file — **plans only**. Run results,
+pass/fail reports, and bugs found belong in `progress.md` (written by the test-runner
+subagent, one report per iteration, newest first).
+
+---
+
+## Plan 0 — IssueAlert unit tests
+
+**Scope:** `IssueAlertServiceImpl` branch logic with all collaborators mocked
+(pure Mockito, no Spring context).
+
+Repositories to mock and the cases each drives:
+- `TtlConfigRepository` — `findAll()`: empty vs. non-empty
+- `RepositoryMapRepository` — `findByRepository()`: empty vs. non-empty → `List<uid>`
+- `FilterRepository` — `findByUserId()` → eventTypes: whether it contains `"issues"`
+- `AlertRecordRepository` — `existsByIssueIdAndUid()`: dedup branch
+- `UserRepository` — `findById()`: user present vs. missing
+- `mongoTemplate.aggregate` — mocked to return `OpenIssueResult` fixtures
+
+Related data: `List<ttlConfig>` fixtures; aggregation results on the `IssueEvents`
+collection (mocked at this tier — the real aggregation is Plan 1's job).
 
 ---
 
 ## Plan 1 — IssueAlert Integration Test (designdoc Phase 6, final part)
 
-**Status:** complete (2026-07-18)
 **Scope:** full scan-to-SQS path of `IssueAlertServiceImpl.scanAndAlert()` against real
 local MongoDB + LocalStack SQS, per designdoc.md "Phase 6 Integration Test".
-
-**Outcome:** `IssueAlertIntegrationTest` (`service.impl` package), 5 scenarios per §5 below.
-Step 0 (externalizing the queue URL) was skipped per owner instruction, so the queue URL stayed
-hardcoded in `AsyncQueueserviceImpl`; queue resolution was instead solved entirely test-side by
-overriding the `sqsAsyncClientCloud` bean (`LocalStackSqsTestConfig`) to point at LocalStack and
-using the LocalStack multi-account trick (access key id `038462794128`, matching the account
-segment of the hardcoded AWS-shaped URL, for both that bean and the test's own SQS client) —
-verified manually against running LocalStack before relying on it. 2 of 5 scenarios pass
-(within-TTL, closed-latest-wins); the other 3 (happy path, reopened, dedup) are `@Disabled` —
-they exposed a real main-source bug in `IssueAlertServiceImpl.queryOpenIssues()`'s aggregation
-(`Aggregation.group("issueInfo.id")` groups on a field path Spring Data Mongo never actually
-persists — see designdoc.md "Phase 6 Integration Test — COMPLETE" for the full analysis). Not
-fixed here; src/main was out of scope for this task.
 
 ### 1. Why this tier exists — division of labor with the unit tests
 
