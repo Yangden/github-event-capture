@@ -177,6 +177,14 @@
 			<version>33.4.8-jre</version>
 		</dependency>
 
+		<!-- mockito -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>5.23.0</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>
