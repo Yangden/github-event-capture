@@ -1,5 +1,6 @@
 package com.example.github_event_capture.service;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -30,6 +31,17 @@ public class MongoTemplateService {
     /* bulk write a value */
     public void bulkWrite(Class<?> domainClass, Set<String> keys, long value,
                           String keyName, String valName) {
+        try {
+            executeBatch(domainClass, keys, value, keyName, valName);
+        } catch (DuplicateKeyException e) {
+            // upsert lost the insert race under the unique index; the document now
+            // exists, so one rebuilt retry takes the atomic $addToSet update path
+            executeBatch(domainClass, keys, value, keyName, valName);
+        }
+    }
+
+    private void executeBatch(Class<?> domainClass, Set<String> keys, long value,
+                              String keyName, String valName) {
         BulkOperations ops = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, domainClass);
         for (String key : keys) {
             Query query = Query.query(Criteria.where(keyName).is(key));
