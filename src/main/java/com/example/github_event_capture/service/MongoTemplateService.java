@@ -13,19 +13,9 @@ import com.example.github_event_capture.entity.Event;
 @Service
 public class MongoTemplateService {
     private final MongoTemplate mongoTemplate;
-    private BulkOperations ops;
-    private Class domainClass;
 
     public MongoTemplateService(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-    }
-
-    /* settlers */
-    public void setDomainClass(Class domainClass) {
-        this.domainClass = domainClass;
-    }
-    public void setBulkOps() {
-        this.ops = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, domainClass);
     }
 
      /**********************************************
@@ -38,7 +28,9 @@ public class MongoTemplateService {
     bulk operations
      **************/
     /* bulk write a value */
-    public void bulkWrite(Set<String> keys, long value, String keyName, String valName) {
+    public void bulkWrite(Class<?> domainClass, Set<String> keys, long value,
+                          String keyName, String valName) {
+        BulkOperations ops = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, domainClass);
         for (String key : keys) {
             Query query = Query.query(Criteria.where(keyName).is(key));
             Update update = new Update().addToSet(valName, value);

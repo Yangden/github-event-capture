@@ -43,17 +43,15 @@ public class EventFiltersServiceImpl {
             filterRepository.save(filters);
             /* write to the eventTypeSubscribers */
             LOGGER.info("start bulk writes to the inverted index");
-            mongoTemplateService.setDomainClass(EventTypeMap.class);
-            mongoTemplateService.setBulkOps();
-            mongoTemplateService.bulkWrite(filtersDTO.getEventTypes(), uid, "eventType", "uids");
+            mongoTemplateService.bulkWrite(EventTypeMap.class,
+                    filtersDTO.getEventTypes(), uid, "eventType", "uids");
             monitorService.recordMongoDBWrite((double) filtersDTO.getEventTypes().size());
 
             /* write to the repositorySubscribers */
             if (filtersDTO.getRepositories() != null && !filtersDTO.getRepositories().isEmpty()) {
                 LOGGER.info("start bulk writes to repository subscribers");
-                mongoTemplateService.setDomainClass(RepositoryMap.class);
-                mongoTemplateService.setBulkOps();
-                mongoTemplateService.bulkWrite(filtersDTO.getRepositories(), uid, "repository", "uids");
+                mongoTemplateService.bulkWrite(RepositoryMap.class,
+                        filtersDTO.getRepositories(), uid, "repository", "uids");
             }
 
         } catch (Exception e) {
