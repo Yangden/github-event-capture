@@ -33,7 +33,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - D:\computerscience\eventCapture\codes\github-event-capture\scripts:/scripts
+      - D:\computerscience\eventCapture\codes\github-event-capture\scripts\mongodb:/scripts
 
   PostgresSQL:
     image: postgres:latest
