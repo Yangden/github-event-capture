@@ -12,9 +12,14 @@ import static org.mockito.Mockito.when;
 import com.example.github_event_capture.entity.Event;
 import com.example.github_event_capture.entity.EventTypeMap;
 import com.example.github_event_capture.entity.RepositoryMap;
+import com.mongodb.MongoBulkWriteException;
+import com.mongodb.ServerAddress;
+import com.mongodb.bulk.BulkWriteError;
+import com.mongodb.bulk.BulkWriteResult;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,8 +28,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.BulkOperationException;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
@@ -32,6 +36,9 @@ import org.springframework.data.mongodb.core.query.Update;
 
 @ExtendWith(MockitoExtension.class)
 public class MongoTemplateServiceTest {
+
+    private static final int DUPLICATE_KEY = 11000;
+    private static final int DOCUMENT_VALIDATION_FAILURE = 121;
 
     @Mock
     private MongoTemplate mongoTemplate;
@@ -96,7 +103,7 @@ public class MongoTemplateServiceTest {
         BulkOperations retryOps = mock(BulkOperations.class);
         when(mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, EventTypeMap.class))
                 .thenReturn(firstOps, retryOps);
-        when(firstOps.execute()).thenThrow(new DuplicateKeyException("E11000 duplicate key"));
+        when(firstOps.execute()).thenThrow(bulkError(DUPLICATE_KEY));
         Set<String> keys = new LinkedHashSet<>(List.of("push", "issues"));
 
         mongoTemplateService.bulkWrite(EventTypeMap.class, keys, 3L, "eventType", "uids");
@@ -111,11 +118,11 @@ public class MongoTemplateServiceTest {
     public void bulkWriteDoesNotRetryOnOtherErrors() {
         when(mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, EventTypeMap.class))
                 .thenReturn(ops);
-        when(ops.execute()).thenThrow(new DataIntegrityViolationException("write error"));
+        when(ops.execute()).thenThrow(bulkError(DOCUMENT_VALIDATION_FAILURE));
 
         assertThatThrownBy(() -> mongoTemplateService.bulkWrite(
                 EventTypeMap.class, Set.of("push"), 3L, "eventType", "uids"))
-                .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(BulkOperationException.class);
 
         verify(mongoTemplate, times(1)).bulkOps(BulkOperations.BulkMode.UNORDERED, EventTypeMap.class);
     }
@@ -127,14 +134,23 @@ public class MongoTemplateServiceTest {
         BulkOperations retryOps = mock(BulkOperations.class);
         when(mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, EventTypeMap.class))
                 .thenReturn(firstOps, retryOps);
-        when(firstOps.execute()).thenThrow(new DuplicateKeyException("E11000 duplicate key"));
-        when(retryOps.execute()).thenThrow(new DuplicateKeyException("E11000 duplicate key"));
+        when(firstOps.execute()).thenThrow(bulkError(DUPLICATE_KEY));
+        when(retryOps.execute()).thenThrow(bulkError(DUPLICATE_KEY));
 
         assertThatThrownBy(() -> mongoTemplateService.bulkWrite(
                 EventTypeMap.class, Set.of("push"), 3L, "eventType", "uids"))
-                .isInstanceOf(DuplicateKeyException.class);
+                .isInstanceOf(BulkOperationException.class);
 
         verify(mongoTemplate, times(2)).bulkOps(BulkOperations.BulkMode.UNORDERED, EventTypeMap.class);
+    }
+
+    /* builds the exception DefaultBulkOperations really throws for a failed bulk write */
+    private static BulkOperationException bulkError(int code) {
+        MongoBulkWriteException cause = new MongoBulkWriteException(
+                BulkWriteResult.unacknowledged(),
+                List.of(new BulkWriteError(code, "write error", new BsonDocument(), 0)),
+                null, new ServerAddress(), Set.of());
+        return new BulkOperationException(cause.getMessage(), cause);
     }
 
     /* case 6 — saveEvent passthrough */
